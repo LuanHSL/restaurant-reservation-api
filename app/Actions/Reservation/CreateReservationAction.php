@@ -4,13 +4,17 @@ namespace App\Actions\Reservation;
 
 use App\Http\Controllers\Controller;
 use App\Models\Reservation;
+use App\UseCase\Reservation\CreateReservationUseCase;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\ValidationException;
 
 class CreateReservationAction extends Controller
 {
+    public function __construct(
+        private CreateReservationUseCase $createReservationUseCase,
+    ){}
+
     public function __invoke(Request $request): JsonResponse
     {
         try {
@@ -22,15 +26,11 @@ class CreateReservationAction extends Controller
             ]);
 
             $auth = auth()->guard('web');
-            $newReservation = $request->toArray();
-            $newReservation["user_id"] = $auth->user()->id;
+            $reservation = $request->toArray();
+            $reservation["user_id"] = $auth->user()->id;
 
-            $reservation = Reservation::create($newReservation);
-
-            return response()->json($reservation);
-
+            return response()->json(($this->createReservationUseCase)(new Reservation($reservation)));
         } catch (Exception $e) {
-            dd($e);
             return response()->json(["messages" => $e->getMessage()], $e->getCode());
         }
     }
